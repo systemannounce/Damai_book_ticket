@@ -8,6 +8,9 @@ from selenium import webdriver
 import time
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 """
 1. 由于可能票源紧张，本程序默认抢购一张
@@ -200,6 +203,23 @@ class Book_Ticket(object):
         except Exception as e:
             raise e
 
+    def wait_book(self):
+        try:
+            timer = 0
+            loading_element = WebDriverWait(self.driver, 5).until(
+                EC.presence_of_element_located((By.ID, "loading"))
+            )
+            while self.driver.execute_script("return window.getComputedStyle(arguments[0]).display;",
+                                             loading_element) != "none":
+                timer = timer + 1
+                WebDriverWait(self.driver, 1).until(
+                    EC.invisibility_of_element_located((By.ID, "loading"))
+                )
+                if timer > 5:
+                    break
+        except Exception as e:
+            raise e
+
     def select_buy_name(self):
         try:
             # 先判断是否有选择购买人的标签
@@ -266,6 +286,9 @@ class Book_Ticket(object):
             # 点击立即预定
             click_book = self.driver.find_element(By.CLASS_NAME, "buy-link")
             click_book.click()
+
+            # 等待订单界面出现，最长5秒
+            self.wait_book()
 
             # 选择购买人
             self.select_buy_name()
