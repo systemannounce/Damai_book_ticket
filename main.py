@@ -205,18 +205,15 @@ class Book_Ticket(object):
 
     def wait_book(self):
         try:
-            timer = 0
-            loading_element = WebDriverWait(self.driver, 5).until(
+            start_wait_time = time.time()
+            WebDriverWait(self.driver, 3).until(
                 EC.presence_of_element_located((By.ID, "loading"))
             )
-            while self.driver.execute_script("return window.getComputedStyle(arguments[0]).display;",
-                                             loading_element) != "none":
-                timer = timer + 1
-                WebDriverWait(self.driver, 1).until(
-                    EC.invisibility_of_element_located((By.ID, "loading"))
-                )
-                if timer > 5:
-                    break
+            WebDriverWait(self.driver, 5).until(
+                EC.invisibility_of_element_located((By.ID, "loading"))
+            )
+            end_wait_time = time.time()
+            print('等待订单界面加载的总时长为：{}'.format(end_wait_time - start_wait_time))
         except Exception as e:
             raise e
 
@@ -225,6 +222,7 @@ class Book_Ticket(object):
             # 先判断是否有选择购买人的标签
             buy_name_label = self.driver.find_elements(By.ID, "dmViewerBlock_DmViewerBlock")
             if not buy_name_label:
+                print('无需选择购买人')
                 return
 
             # 定位所有符合条件的元素
@@ -238,8 +236,10 @@ class Book_Ticket(object):
                     target_element.click()
                     click_1 = False
                 except Exception as e:
+                    print('购买人点击失败')
                     pass
         except Exception as e:
+            print('购买人点击错误')
             raise e
 
     def change_phone_number(self):
@@ -302,6 +302,7 @@ class Book_Ticket(object):
             self.submit()
 
         except Exception as e:
+            print('未知异常，重试下一次中。。。')
             raise e
 
     def run(self):
