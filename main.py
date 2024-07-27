@@ -34,12 +34,15 @@ class Book_Ticket(object):
 
         self.price_list = cfg.get("ticket_info", "price").strip().split(",")  # 抢票的价格挡位，从左向右
         self.price = list(map(int, self.price_list))
-        self.name_num = int(cfg.get("ticket_info", "name_num").strip())  # 买几张票，暂时未开发…………
+        self.name_num = int(cfg.get("ticket_info", "name_num").strip())  # 买几张票
 
         self.session_list = cfg.get("ticket_info", "session").strip().split(",")  # 抢票的价格挡位，从左向右
         self.session = list(map(int, self.session_list))
 
-        self.who = int(cfg.get("ticket_info", "who").strip())  # 给订单信息里面的第几个人买
+        self.who = cfg.get("ticket_info", "who").strip().split(",")  # 抢票的价格挡位，从左向右
+        self.who_s = list(map(int, self.who))
+        if len(self.who_s) != self.name_num:
+            raise Exception('配置文件中选择的人数和要买的张数对不上，退出中…………')
 
         self.driver_path = cfg.get("other", "driver_path").strip()
 
@@ -203,6 +206,16 @@ class Book_Ticket(object):
         except Exception as e:
             raise e
 
+    def change_quantity(self):
+        try:
+            input_element = self.driver.find_element(By.XPATH, "//input[@class='cafe-c-input-number-input']")
+
+            # 直接向输入框中输入数量
+            input_element.clear()
+            input_element.send_keys(str(self.name_num))
+        except Exception as e:
+            raise e
+
     def wait_book(self):
         try:
             start_wait_time = time.time()
@@ -228,27 +241,36 @@ class Book_Ticket(object):
             # 定位所有符合条件的元素
             elements = self.driver.find_elements(By.CSS_SELECTOR, ".iconfont.icondanxuan-weixuan_")
 
-            # 因为您想要点击第三个元素，所以需要索引到下标为 2 的位置 (Python 索引从 0 开始)
-            target_element = elements[self.who - 1]
-            click_1 = True
-            while click_1:
+            num = 0
+            for i in self.who_s:
                 try:
-                    target_element.click()
-                    click_1 = False
+                    target_who = elements[i - 1]
                 except Exception as e:
-                    print('购买人点击失败')
-                    pass
+                    print('订单界面有一个或者多个人无法选中，跳过…………')
+                    break
+                click_1 = True
+                while click_1:
+                    try:
+                        target_who.click()
+                        num += 1
+                        click_1 = False
+                    except Exception as e:
+                        print('购买人点击失败')
+                        pass
         except Exception as e:
             print('购买人点击错误')
             raise e
 
     def change_phone_number(self):
-        input_element = self.driver.find_element(By.XPATH, "//input[@placeholder='请填写联系人手机号']")
+        try:
+            input_element = self.driver.find_element(By.XPATH, "//input[@placeholder='请填写联系人手机号']")
 
-        # 直接向输入框中输入新的手机号
-        new_value = ""
-        input_element.clear()
-        input_element.send_keys(new_value)
+            # 直接向输入框中输入新的手机号
+            new_value = ""
+            input_element.clear()
+            input_element.send_keys(new_value)
+        except Exception as e:
+            pass    # 改不了就算了
 
     def submit(self):
         try:
@@ -282,6 +304,9 @@ class Book_Ticket(object):
 
             # 选择票价
             self.select_price()
+
+            # 选择票数
+            self.change_quantity()
 
             # 点击立即预定
             click_book = self.driver.find_element(By.CLASS_NAME, "buy-link")
